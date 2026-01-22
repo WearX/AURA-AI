@@ -1,14 +1,17 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Plus, Layers } from 'lucide-react'
+import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Paperclip, FileText, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { FlashcardDisplay } from './FlashcardDisplay'
 
 export function ChatView() {
   const { messages, addMessage, clearMessages, userName, notes, decks, addDeck, addCardToDeck, subjects, setActiveTab } = useAppStore()
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; content: string } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -56,6 +59,32 @@ export function ChatView() {
     return cards.length > 0 ? cards : null
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Only allow text-based files
+    const allowedTypes = ['.txt', '.md', '.pdf']
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+
+    if (!allowedTypes.includes(fileExt)) {
+      alert('Csak .txt, .md vagy .pdf fájlokat tölthetsz fel!')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('A fájl túl nagy! Maximum 5MB lehet.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const content = event.target?.result as string
+      setUploadedFile({ name: file.name, content })
+    }
+    reader.readAsText(file)
+  }
+
   const createDeckFromMessage = (content: string) => {
     const cards = extractFlashcards(content)
     if (!cards || cards.length === 0) {
@@ -87,16 +116,26 @@ export function ChatView() {
   const handleSend = async () => {
     if (!input.trim() || isTyping) return
 
-    const userMessage = input.trim()
+    let userMessage = input.trim()
+
+    // If file is uploaded, add it to the message
+    if (uploadedFile) {
+      userMessage += `\n\n[Feltöltött fájl: ${uploadedFile.name}]\n${uploadedFile.content.substring(0, 3000)}${uploadedFile.content.length > 3000 ? '...' : ''}`
+    }
+
     setInput('')
-    addMessage({ role: 'user', content: userMessage })
+    addMessage({ role: 'user', content: input.trim() + (uploadedFile ? ` 📎 ${uploadedFile.name}` : '') })
     setIsTyping(true)
 
     try {
       const context = {
         notes: notes.map(n => n.title),
         decks: decks.map(d => d.title),
-        totalCards: decks.reduce((acc, d) => acc + d.cards.length, 0)
+        totalCards: decks.reduce((acc, d) => acc + d.cards.length, 0),
+        uploadedFile: uploadedFile ? {
+          name: uploadedFile.name,
+          content: uploadedFile.content.substring(0, 5000) // Limit to 5000 chars
+        } : null
       }
 
       const conversationHistory = [...messages, { role: 'user', content: userMessage }]
@@ -106,19 +145,22 @@ export function ChatView() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: conversationHistory,
-          context 
+          context
         }),
       })
 
       const data = await response.json()
       addMessage({ role: 'assistant', content: data.content })
+
+      // Clear uploaded file after sending
+      setUploadedFile(null)
     } catch (error) {
       console.error('Chat error:', error)
-      addMessage({ 
-        role: 'assistant', 
-        content: '❌ Hiba történt a kapcsolódáskor. Ellenőrizd az internet kapcsolatot!' 
+      addMessage({
+        role: 'assistant',
+        content: '❌ Hiba történt a kapcsolódáskor. Ellenőrizd az internet kapcsolatot!'
       })
     } finally {
       setIsTyping(false)
@@ -126,10 +168,10 @@ export function ChatView() {
   }
 
   const quickPrompts = [
-    "Készíts 5 flashcardot a II. világháborúról!",
-    "Készíts flashcardokat a fotoszintézisről!",
-    "Magyarázd el a Pitagorasz-tételt!",
-    "Milyen tanulási tippeket ajánlasz?"
+    "Taníts meg a fotoszintézisre! 🌱",
+    "Készíts flashcardokat a II. világháborúról!",
+    "Hogyan tanulhatnék hatékonyabban?",
+    "Magyarázd el a Pitagorasz-tételt lépésről lépésre!"
   ]
 
   return (
@@ -171,7 +213,7 @@ export function ChatView() {
               Szia{userName ? `, ${userName}` : ''}! 👋
             </h2>
             <p className="text-slate-500 mb-8 max-w-sm mx-auto">
-              Kérd, hogy készítsek flashcardokat bármilyen témából! Vagy kérdezz bármit.
+              Tölts fel jegyzeteket, kérj flashcardokat, vagy kérdezz bármit! Tanítok neked. 📚
             </p>
             
             <div className="grid grid-cols-1 gap-2 max-w-sm mx-auto">
@@ -188,8 +230,8 @@ export function ChatView() {
           </div>
         ) : (
           messages.map((msg) => {
-            const hasFlashcards = msg.role === 'assistant' && extractFlashcards(msg.content)
-            
+            const flashcards = msg.role === 'assistant' ? extractFlashcards(msg.content) : null
+
             return (
               <div
                 key={msg.id}
@@ -200,7 +242,7 @@ export function ChatView() {
                     <Bot className="text-white" size={18} />
                   </div>
                 )}
-                <div className="flex flex-col gap-2 max-w-[85%]">
+                <div className="flex flex-col gap-3 max-w-[85%]">
                   <div
                     className={`p-4 ${
                       msg.role === 'user'
@@ -210,16 +252,13 @@ export function ChatView() {
                   >
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   </div>
-                  
-                  {/* Create flashcard button */}
-                  {hasFlashcards && (
-                    <button
-                      onClick={() => createDeckFromMessage(msg.content)}
-                      className="self-start flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-purple-500/25 hover:shadow-xl transition-all active:scale-95"
-                    >
-                      <Layers size={16} />
-                      Flashcard pakli létrehozása
-                    </button>
+
+                  {/* Interactive Flashcard Display */}
+                  {flashcards && (
+                    <FlashcardDisplay
+                      cards={flashcards}
+                      onCreateDeck={() => createDeckFromMessage(msg.content)}
+                    />
                   )}
                 </div>
                 {msg.role === 'user' && (
@@ -252,13 +291,44 @@ export function ChatView() {
 
       {/* Input */}
       <div className="p-3 pt-0">
+        {/* Uploaded file indicator */}
+        {uploadedFile && (
+          <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-xl border border-violet-200 dark:border-violet-800">
+            <FileText size={16} className="text-violet-600 dark:text-violet-400" />
+            <span className="text-sm text-violet-700 dark:text-violet-300 flex-1 truncate">
+              {uploadedFile.name}
+            </span>
+            <button
+              onClick={() => setUploadedFile(null)}
+              className="p-1 hover:bg-violet-200 dark:hover:bg-violet-800 rounded-lg transition-colors"
+            >
+              <X size={14} className="text-violet-600 dark:text-violet-400" />
+            </button>
+          </div>
+        )}
+
         <div className="glass-card p-2 flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.pdf"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isTyping}
+            className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors disabled:opacity-50"
+            title="Jegyzet feltöltése"
+          >
+            <Paperclip size={20} className="text-slate-600 dark:text-slate-400" />
+          </button>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Kérj flashcardokat vagy kérdezz bármit..."
+            placeholder={uploadedFile ? "Kérdezz a feltöltött jegyzetről..." : "Tölts fel jegyzetet vagy kérdezz bármit..."}
             disabled={isTyping}
             className="flex-1 px-4 py-3 bg-transparent outline-none placeholder:text-slate-400"
           />
