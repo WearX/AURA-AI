@@ -78,26 +78,33 @@ export function ChatView() {
       return
     }
 
-    // Handle PDF files differently
+    // Handle PDF files client-side
     if (fileExt === '.pdf') {
       try {
-        const formData = new FormData()
-        formData.append('file', file)
+        // Dynamic import to avoid SSR issues
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
-        const response = await fetch('/api/parse-pdf', {
-          method: 'POST',
-          body: formData
-        })
+        // Set worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
-        if (!response.ok) {
-          throw new Error('PDF feldolgozás sikertelen')
+        const arrayBuffer = await file.arrayBuffer()
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+        const pdf = await loadingTask.promise
+
+        let fullText = ''
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum)
+          const textContent = await page.getTextContent()
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ')
+          fullText += pageText + '\n\n'
         }
 
-        const data = await response.json()
-        setUploadedFile({ name: file.name, content: data.text })
+        setUploadedFile({ name: file.name, content: fullText.trim() })
       } catch (error) {
         console.error('PDF parse error:', error)
-        alert('Hiba történt a PDF feldolgozása során. Próbáld meg szöveges formátumban (.txt) feltölteni!')
+        alert('Hiba történt a PDF feldolgozása során. Ellenőrizd, hogy érvényes PDF fájl-e!')
       }
     } else {
       // Handle text files
