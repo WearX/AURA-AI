@@ -4,6 +4,7 @@ import { useAppStore } from '@/lib/store'
 import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Paperclip, FileText, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { FlashcardDisplay } from './FlashcardDisplay'
+import ReactMarkdown from 'react-markdown'
 
 export function ChatView() {
   const { messages, addMessage, clearMessages, userName, notes, decks, addDeck, addCardToDeck, subjects, setActiveTab } = useAppStore()
@@ -274,7 +275,13 @@ export function ChatView() {
                         : 'glass-card rounded-2xl rounded-bl-md'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    {msg.role === 'assistant' ? (
+                      <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-headings:mt-3 prose-headings:mb-2 prose-p:my-2 prose-li:my-0.5 prose-code:bg-violet-100 prose-code:dark:bg-violet-900/30 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    )}
                   </div>
 
                   {/* Interactive Flashcard Display */}

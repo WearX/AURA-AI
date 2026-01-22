@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import pdf from 'pdf-parse'
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
+
+// Configure worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,15 +15,26 @@ export async function POST(request: NextRequest) {
 
     // Get file buffer
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const uint8Array = new Uint8Array(arrayBuffer)
 
-    // Parse PDF
-    const data = await pdf(buffer)
+    // Load PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
+    const pdf = await loadingTask.promise
+
+    // Extract text from all pages
+    let fullText = ''
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum)
+      const textContent = await page.getTextContent()
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+      fullText += pageText + '\n\n'
+    }
 
     return NextResponse.json({
-      text: data.text,
-      pages: data.numpages,
-      info: data.info
+      text: fullText.trim(),
+      pages: pdf.numPages
     })
   } catch (error) {
     console.error('PDF parse error:', error)
