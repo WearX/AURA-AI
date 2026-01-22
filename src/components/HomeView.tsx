@@ -1,11 +1,24 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { FileText, Layers, Brain, Sparkles, TrendingUp, Clock } from 'lucide-react'
-import { useMemo } from 'react'
+import { createClient } from '@/lib/supabase'
+import { FileText, Layers, Brain, Sparkles, TrendingUp, Clock, LogOut } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { User } from '@supabase/supabase-js'
 
-export function HomeView() {
-  const { userName, setUserName, notes, decks, setActiveTab } = useAppStore()
+export function HomeView({ user }: { user: User | null }) {
+  const { userName, notes, decks, setActiveTab } = useAppStore()
+  const [loggingOut, setLoggingOut] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   const stats = useMemo(() => {
     const totalCards = decks.reduce((acc, d) => acc + d.cards.length, 0)
@@ -35,45 +48,24 @@ export function HomeView() {
     return 'Jó estét'
   }, [])
 
-  // Onboarding
-  if (!userName) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[90vh] p-6">
-        <div className="w-24 h-24 mb-8 rounded-3xl bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center shadow-2xl shadow-purple-500/30">
-          <span className="text-5xl">🎓</span>
-        </div>
-        <h1 className="text-3xl font-bold text-center mb-3">
-          <span className="gradient-text">TanulásAI</span>
-        </h1>
-        <p className="text-slate-500 text-center mb-10 max-w-xs">
-          Jegyzetelj, készíts flashcardokat, és tanulj AI segítségével
-        </p>
-        <div className="w-full max-w-xs">
-          <label className="block text-sm font-semibold mb-2 text-slate-600 dark:text-slate-400">
-            Mi a neved?
-          </label>
-          <input
-            type="text"
-            placeholder="Írd be a neved..."
-            className="w-full px-5 py-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-violet-500 dark:focus:border-violet-400 outline-none transition-all text-lg"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                setUserName(e.currentTarget.value.trim())
-              }
-            }}
-          />
-          <p className="text-xs text-slate-400 mt-3 text-center">Nyomj Entert a folytatáshoz</p>
-        </div>
-      </div>
-    )
-  }
+  const displayName = userName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Felhasználó'
 
   return (
     <div className="p-4 pb-28 max-w-lg mx-auto">
       {/* Header */}
-      <div className="mb-6 pt-2">
-        <p className="text-slate-500 text-sm font-medium">{greeting}</p>
-        <h1 className="text-2xl font-bold mt-1">{userName}! 👋</h1>
+      <div className="mb-6 pt-2 flex items-center justify-between">
+        <div>
+          <p className="text-slate-500 text-sm font-medium">{greeting}</p>
+          <h1 className="text-2xl font-bold mt-1">{displayName}! 👋</h1>
+        </div>
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+          title="Kijelentkezés"
+        >
+          <LogOut size={20} className="text-slate-600 dark:text-slate-400" />
+        </button>
       </div>
 
       {/* Stats Grid */}

@@ -14,28 +14,43 @@ OTIO 2025 - Országos Tudományos és Innovációs Olimpia projekt
 
 ## Telepítés
 
-### 1. Ollama telepítése (lokális AI)
+### 1. Klónozd a repository-t
 
 ```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows: töltsd le az ollama.com-ról
-
-# Modell letöltése (válassz egyet):
-ollama pull llama3.2        # 2GB - gyors, jó magyar
-ollama pull mistral         # 4GB - erősebb
-ollama pull gemma2          # 5GB - Google model
+git clone <repository-url>
+cd AURA-AI
 ```
 
-### 2. Alkalmazás indítása
+### 2. Környezeti változók beállítása
+
+Hozz létre egy `.env.local` fájlt a projekt gyökérkönyvtárában:
+
+```bash
+# Supabase konfiguráció (kötelező a bejelentkezéshez)
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Groq API konfiguráció (AI chathez)
+GROQ_API_KEY=your-groq-api-key
+```
+
+**Supabase projekt létrehozása:**
+1. Menj a [https://app.supabase.com](https://app.supabase.com) oldalra
+2. Hozz létre egy új projektet
+3. Másold ki a projekted URL-jét és anon kulcsát a Settings > API menüből
+4. Az authentikáció már be van állítva - csak add hozzá az env változókat!
+
+**Groq API kulcs megszerzése:**
+1. Menj a [https://console.groq.com](https://console.groq.com) oldalra
+2. Regisztrálj/jelentkezz be
+3. Hozz létre egy API kulcsot
+4. Másold be a `.env.local` fájlba
+
+### 3. Alkalmazás indítása
 
 ```bash
 # Függőségek telepítése
 npm install
-
-# Ollama indítása (külön terminálban)
-ollama serve
 
 # Next.js dev szerver indítása
 npm run dev
@@ -43,13 +58,21 @@ npm run dev
 
 Nyisd meg: `http://localhost:3000`
 
+## Első használat
+
+1. **Regisztráció**: A `/signup` oldalon hozz létre egy új fiókot
+2. **Bejelentkezés**: Jelentkezz be az email címeddel és jelszavaddal
+3. **Kezdd el a tanulást**: Készíts jegyzeteket, flashcardokat, és használd az AI chatet!
+
 ## Technológiák
 
 - **Next.js 16** - React keretrendszer
+- **React 19** - UI könyvtár
 - **TypeScript** - Típusbiztos kód
-- **Tailwind CSS** - Stílusok
+- **Tailwind CSS v4** - Stílusok
 - **Zustand** - State management
-- **Ollama** - Lokális AI (LLM)
+- **Supabase** - Authentikáció és adatbázis
+- **Groq API** - AI chat (llama-3.3-70b modell)
 - **PWA** - Progressive Web App
 
 ## Mobil telepítés (PWA)
@@ -60,11 +83,20 @@ Nyisd meg: `http://localhost:3000`
 
 ## AI Chat
 
-Az AI Chat Ollama-t használ, ami lokálisan fut a gépeden.
+Az AI Chat a Groq API-t használja (llama-3.3-70b modell).
 Bármilyen témáról kérdezhetsz:
 - Tanulási technikák
 - Történelem, fizika, kémia, bármi
 - Általános kérdések
+- Flashcard generálás beszélgetésből
+
+## Authentikáció
+
+Az alkalmazás Supabase-t használ a felhasználói authentikációhoz:
+- **Email/jelszó regisztráció**: Biztonságos fiók létrehozás
+- **Védett route-ok**: Csak bejelentkezett felhasználók férnek hozzá
+- **Session management**: Automatikus munkamenet kezelés
+- **Kijelentkezés**: Biztonságos kijelentkezés gomb a főoldalon
 
 ## Készítette
 
