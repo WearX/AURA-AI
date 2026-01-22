@@ -48,15 +48,13 @@ ${context?.notes?.length ? `- ${context.notes.length} jegyzete van: ${context.no
 ${context?.decks?.length ? `- ${context.decks.length} flashcard paklija van` : ''}
 
 🎯 FLASHCARD KÉSZÍTÉS:
-Ha flashcardokat kérsz, használd PONTOSAN ezt a formátumot:
-```json
+Ha flashcardokat kérnek, használd PONTOSAN ezt a JSON formátumot (tedd code blockba):
 [
   {
     "kérdés": "Rövid, világos kérdés?",
     "válasz": "Tömör, pontos válasz"
   }
 ]
-```
 
 KRITIKUS: A flashcardoknak:
 - Konkrét tudást kell tesztelniük
