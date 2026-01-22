@@ -77,12 +77,36 @@ export function ChatView() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      const content = event.target?.result as string
-      setUploadedFile({ name: file.name, content })
+    // Handle PDF files differently
+    if (fileExt === '.pdf') {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch('/api/parse-pdf', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (!response.ok) {
+          throw new Error('PDF feldolgozás sikertelen')
+        }
+
+        const data = await response.json()
+        setUploadedFile({ name: file.name, content: data.text })
+      } catch (error) {
+        console.error('PDF parse error:', error)
+        alert('Hiba történt a PDF feldolgozása során. Próbáld meg szöveges formátumban (.txt) feltölteni!')
+      }
+    } else {
+      // Handle text files
+      const reader = new FileReader()
+      reader.onload = async (event) => {
+        const content = event.target?.result as string
+        setUploadedFile({ name: file.name, content })
+      }
+      reader.readAsText(file)
     }
-    reader.readAsText(file)
   }
 
   const createDeckFromMessage = (content: string) => {
