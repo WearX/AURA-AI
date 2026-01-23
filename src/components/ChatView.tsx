@@ -4,7 +4,7 @@ import { useAppStore } from '@/lib/store'
 import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Paperclip, FileText, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { FlashcardDisplay } from './FlashcardDisplay'
-import ReactMarkdown from 'react-markdown'
+import { TypingMessage } from './TypingMessage'
 
 export function ChatView() {
   const { messages, addMessage, clearMessages, userName, notes, decks, addDeck, addCardToDeck, subjects, setActiveTab } = useAppStore()
@@ -84,11 +84,14 @@ export function ChatView() {
         // Dynamic import to avoid SSR issues
         const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
-        // Set worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+        // Disable worker to avoid CDN issues
+        pdfjsLib.GlobalWorkerOptions.workerSrc = false
 
         const arrayBuffer = await file.arrayBuffer()
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/standard_fonts/'
+        })
         const pdf = await loadingTask.promise
 
         let fullText = ''
@@ -261,8 +264,9 @@ export function ChatView() {
             </div>
           </div>
         ) : (
-          messages.map((msg) => {
+          messages.map((msg, index) => {
             const flashcards = msg.role === 'assistant' ? extractFlashcards(msg.content) : null
+            const isLatestMessage = index === messages.length - 1
 
             return (
               <div
@@ -270,24 +274,25 @@ export function ChatView() {
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-                    <Bot className="text-white" size={18} />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/25">
+                    <Bot className="text-white" size={20} />
                   </div>
                 )}
-                <div className="flex flex-col gap-3 max-w-[85%]">
+                <div className="flex flex-col gap-4 max-w-[90%]">
                   <div
-                    className={`p-4 ${
+                    className={`p-5 ${
                       msg.role === 'user'
                         ? 'bg-gradient-to-br from-violet-600 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-purple-500/20'
-                        : 'glass-card rounded-2xl rounded-bl-md'
+                        : 'glass-card rounded-2xl rounded-bl-md shadow-md'
                     }`}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="text-sm leading-relaxed prose max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
+                      <TypingMessage
+                        content={msg.content}
+                        isLatest={isLatestMessage && !isTyping}
+                      />
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <p className="text-base whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                     )}
                   </div>
 

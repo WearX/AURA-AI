@@ -44,6 +44,27 @@ FORMÁZÁS - FONTOS:
 - NE használj túl sok markdown formázást
 - Rövid, tömör bekezdések
 
+VIZUALIZÁCIÓ - FOLYAMATÁBRÁK ÉS DIAGRAMOK:
+Ha egy folyamat, kapcsolat vagy struktúra megértéséhez hasznos lenne egy ábra, készíts Mermaid diagramot!
+
+Használható diagram típusok:
+1. **Folyamatábra (flowchart)** - lépések, döntések
+2. **Szekvencia diagram** - időbeli folyamatok
+3. **Mind map** - fogalmak kapcsolata
+4. **Gantt chart** - időzítés
+
+Példa folyamatábra szintaxis:
+\`\`\`mermaid
+graph TD
+    A[Kezdés] --> B{Döntés?}
+    B -->|Igen| C[Cselekvés 1]
+    B -->|Nem| D[Cselekvés 2]
+    C --> E[Vég]
+    D --> E
+\`\`\`
+
+FONTOS: Ha folyamatot, algoritmust vagy bonyolult kapcsolatot magyarázol, MINDIG készíts hozzá diagramot!
+
 FLASHCARD FORMÁTUM:
 Ha flashcardokat kérnek, add vissza JSON-ban:
 [
