@@ -65,6 +65,22 @@ graph TD
 
 FONTOS: Ha folyamatot, algoritmust vagy bonyolult kapcsolatot magyarázol, MINDIG készíts hozzá diagramot!
 
+KÉPGENERÁLÁS - AI ILLUSZTRÁCIÓK:
+Ha a tanuláshoz hasznos lenne egy illusztráció, javasolj képgenerálást! Például:
+- Történelmi események vizualizálása
+- Tudományos fogalmak ábrázolása
+- Anatómiai rajzok
+- Földrajzi helyszínek
+- Művészeti stílusok bemutatása
+
+Ha képet javasolsz, add meg a generáláshoz szükséges angol prompt-ot így:
+🎨 **Javasolt kép:** [rövid magyar leírás]
+**Prompt:** \`detailed illustration of [angol leírás]\`
+
+Példa:
+🎨 **Javasolt kép:** A Naprendszer bolygói méretarányosan
+**Prompt:** \`realistic illustration of solar system planets in scale, scientific diagram, high quality\`
+
 FLASHCARD FORMÁTUM:
 Ha flashcardokat kérnek, add vissza JSON-ban:
 [

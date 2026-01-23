@@ -1,16 +1,19 @@
 'use client'
 
 import { useAppStore } from '@/lib/store'
-import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Paperclip, FileText, X } from 'lucide-react'
+import { Send, Bot, User, Trash2, Sparkles, Loader2, Zap, Paperclip, FileText, X, Image as ImageIcon } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { FlashcardDisplay } from './FlashcardDisplay'
 import { TypingMessage } from './TypingMessage'
+import { GeneratedImage } from './GeneratedImage'
 
 export function ChatView() {
   const { messages, addMessage, clearMessages, userName, notes, decks, addDeck, addCardToDeck, subjects, setActiveTab } = useAppStore()
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<{ name: string; content: string } | null>(null)
+  const [generatingImage, setGeneratingImage] = useState(false)
+  const [generatedImages, setGeneratedImages] = useState<Record<string, { url: string; prompt: string }>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,6 +61,41 @@ export function ChatView() {
     }
 
     return cards.length > 0 ? cards : null
+  }
+
+  // Extract image generation prompt from message
+  const extractImagePrompt = (content: string): string | null => {
+    const promptMatch = content.match(/\*\*Prompt:\*\*\s*`([^`]+)`/i)
+    return promptMatch ? promptMatch[1] : null
+  }
+
+  // Generate image from prompt
+  const generateImage = async (prompt: string, messageId: string) => {
+    setGeneratingImage(true)
+    try {
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        alert(data.error)
+        return
+      }
+
+      setGeneratedImages(prev => ({
+        ...prev,
+        [messageId]: { url: data.imageUrl, prompt: data.prompt }
+      }))
+    } catch (error) {
+      console.error('Image generation error:', error)
+      alert('Hiba történt a kép generálása során')
+    } finally {
+      setGeneratingImage(false)
+    }
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,6 +304,8 @@ export function ChatView() {
         ) : (
           messages.map((msg, index) => {
             const flashcards = msg.role === 'assistant' ? extractFlashcards(msg.content) : null
+            const imagePrompt = msg.role === 'assistant' ? extractImagePrompt(msg.content) : null
+            const generatedImage = generatedImages[msg.id]
             const isLatestMessage = index === messages.length - 1
 
             return (
@@ -302,6 +342,35 @@ export function ChatView() {
                       cards={flashcards}
                       onCreateDeck={() => createDeckFromMessage(msg.content)}
                     />
+                  )}
+
+                  {/* Generated Image Display */}
+                  {generatedImage && (
+                    <GeneratedImage
+                      imageUrl={generatedImage.url}
+                      prompt={generatedImage.prompt}
+                    />
+                  )}
+
+                  {/* Image Generation Button */}
+                  {imagePrompt && !generatedImage && msg.role === 'assistant' && (
+                    <button
+                      onClick={() => generateImage(imagePrompt, msg.id)}
+                      disabled={generatingImage}
+                      className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-medium shadow-lg shadow-purple-500/25 hover:shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingImage ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          Kép generálása...
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={18} />
+                          🎨 Kép generálása
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
                 {msg.role === 'user' && (
